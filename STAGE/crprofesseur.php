@@ -9,9 +9,14 @@ $connexion = mysqli_connect($serveur, $user, $mdp, $nomBDD);
 if (!$connexion) {
     die('Erreur de connexion : ' . mysqli_connect_error());
 }
-$login = htmlspecialchars($_SESSION['login']);
-$sql = "SELECT compterendu.*,nom,prenom FROM compterendu, adherent
-                WHERE compterendu.login = adherent.login";
+$login = mysqli_real_escape_string($connexion, $_SESSION['login']);
+
+$sql = "SELECT cr.*, a.nom, a.prenom
+FROM compterendu cr
+JOIN adherent a ON cr.login = a.login
+JOIN classe c ON a.idClasse = c.id
+JOIN adherent p ON c.idProf = p.id
+WHERE p.login = '$login'";
 
 $result = mysqli_query($connexion, $sql);
 ?>
@@ -46,6 +51,7 @@ $result = mysqli_query($connexion, $sql);
                 </div>
                 <div class='card-body'>
                     <p><?= htmlspecialchars($row['descriptif']) ?></p>
+					<p><?= htmlspecialchars($row['note']) ?></p>
                 </div>
             </div>
         <?php endwhile; ?>

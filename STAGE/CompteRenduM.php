@@ -16,45 +16,48 @@ if (!$connexion) {
 
 $login = mysqli_real_escape_string($connexion, $_SESSION['login']);
 
-// Récupérer l'id de l'utilisateur connecté
-$id_sql = "SELECT id FROM adherent WHERE login = '$login'";
-$id_result = mysqli_query($connexion, $id_sql);
-
-if ($id_result && mysqli_num_rows($id_result) > 0) {
-    $row = mysqli_fetch_assoc($id_result);
-    $id = $row['id'];
-} else {
-    die("Utilisateur inconnu !");
-}
-
 // Initialisation des variables
 $date_selected = isset($_POST['date']) ? $_POST['date'] : date('Y-m-d');
 $descriptif = "";
 $message = "";
+$note = "NULL"; // Pour la note
 
 // Récupérer le compte rendu pour la date sélectionnée
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'load') {
-    $check_sql = "SELECT descriptif FROM compterendu WHERE id = '$id' AND date = '$date_selected'";
+    $check_sql = "SELECT descriptif, note FROM compterendu WHERE login = '$login' AND date = '$date_selected'";
     $check_result = mysqli_query($connexion, $check_sql);
 
     if ($check_result && mysqli_num_rows($check_result) > 0) {
         $row = mysqli_fetch_assoc($check_result);
         $descriptif = $row['descriptif'];
+        $note = is_null($row['note']) ? "NULL" : $row['note'];
     } else {
         $descriptif = "";
+        $note = "NULL";
     }
 }
 
 // Enregistrer ou mettre à jour le compte rendu
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save') {
     $new_descriptif = mysqli_real_escape_string($connexion, $_POST['descriptif']);
+    $note_post = isset($_POST['radio-notes']) ? $_POST['radio-notes'] : "NULL";
+    $note_sql = ($note_post === "NULL") ? "NULL" : intval($note_post);
 
-    $check_sql = "SELECT * FROM compterendu WHERE id = '$id' AND date = '$date_selected'";
+    // Récupérer l'id de l'adhérent à partir du login
+    $id_sql = "SELECT id FROM adherent WHERE login = '$login'";
+    $res = mysqli_query($connexion, $id_sql);
+    $row = mysqli_fetch_assoc($res);
+    $id_adherent = $row['id'];
+
+    // Vérifier si un compte rendu existe déjà pour cette date
+    $check_sql = "SELECT * FROM compterendu WHERE id = $id_adherent AND date = '$date_selected'";
     $check_result = mysqli_query($connexion, $check_sql);
 
     if (mysqli_num_rows($check_result) > 0) {
         // Modifier (UPDATE)
-        $update_sql = "UPDATE compterendu SET descriptif = '$new_descriptif' WHERE id = '$id' AND date = '$date_selected'";
+        $update_sql = "UPDATE compterendu 
+                       SET descriptif = '$new_descriptif', note = $note_sql 
+                       WHERE id = $id_adherent AND date = '$date_selected'";
         if (mysqli_query($connexion, $update_sql)) {
             $message = "Compte rendu mis à jour avec succès.";
         } else {
@@ -62,7 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     } else {
         // Insérer (INSERT)
-        $insert_sql = "INSERT INTO compterendu (id, login, date, descriptif) VALUES ('$id', '$login', '$date_selected', '$new_descriptif')";
+        $insert_sql = "INSERT INTO compterendu (id, login, date, descriptif, note) 
+                       VALUES ($id_adherent, '$login', '$date_selected', '$new_descriptif', $note_sql)";
         if (mysqli_query($connexion, $insert_sql)) {
             $message = "Compte rendu ajouté avec succès.";
         } else {
@@ -70,9 +74,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         }
     }
 
-    // Recharger le descriptif mis à jour
+    // Recharger les données
     $descriptif = $new_descriptif;
+    $note = $note_post;
 }
+
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -101,7 +107,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 
         <div class="mb-3">
             <label for="descriptif" class="form-label">Descriptif</label>
-            <textarea class="form-control" id="descriptif" name="descriptif" rows="5" required><?php echo htmlspecialchars($descriptif); ?></textarea>
+            <textarea class="form-control" id="descriptif" name="descriptif" rows="5" ><?php echo htmlspecialchars($descriptif); ?></textarea>
+        </div>
+        <div class="note-radios mb-3">
+            <?php for ($i = 0; $i <= 5; $i++): ?>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" id="note<?php echo $i; ?>" name="radio-notes" value="<?php echo $i; ?>" <?php if ($note !== "NULL" && $note == $i) echo "checked"; ?>>
+                    <label class="form-check-label" for="note<?php echo $i; ?>"><?php echo $i; ?></label>
+                </div>
+            <?php endfor; ?>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" id="noteNULL" name="radio-notes" value="NULL" <?php if ($note === "NULL") echo "checked"; ?>>
+                <label class="form-check-label" for="noteNULL">Pas de note</label>
+            </div>
         </div>
 
         <div class="d-grid gap-2">

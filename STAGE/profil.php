@@ -16,19 +16,21 @@ $user = mysqli_fetch_assoc($resultat);
 
 $success = false;
 if (isset($_POST['update'])) {
-    // On ne modifie plus le login, il reste inchangé
+    // On ne modifie plus le login
     $newNom = mysqli_real_escape_string($connexion, $_POST['nom']);
     $newPrenom = mysqli_real_escape_string($connexion, $_POST['prenom']);
     $newEmail = mysqli_real_escape_string($connexion, $_POST['email']);
     $newSexe = mysqli_real_escape_string($connexion, $_POST['sexe']);
     $newTelephone = mysqli_real_escape_string($connexion, $_POST['telephone']);
+    $newClasse = mysqli_real_escape_string($connexion, $_POST['idClasse']);
 
     $updateSQL = "UPDATE adherent SET 
                     nom = '$newNom',
                     prenom = '$newPrenom',
                     email = '$newEmail',
                     Sexe = '$newSexe',
-                    telephone = '$newTelephone'
+                    telephone = '$newTelephone',
+                    idClasse = '$newClasse'
                   WHERE login = '$login'";
 
     if (mysqli_query($connexion, $updateSQL)) {
@@ -83,6 +85,25 @@ if (isset($_POST['update'])) {
                     <label for="telephone" class="form-label">Téléphone :</label>
                     <input type="text" class="form-control" id="telephone" name="telephone" value="<?= htmlspecialchars($user['telephone'] ?? '') ?>">
                 </div>
+                <div class="mb-3">
+                    
+                    <label for="idClasse" class="form-label">Classe :</label>
+                    <select class="form-control" id="idClasse" name="idClasse" required>
+                        <?php
+                        // Récupérer les classes disponibles
+                        if ($user['idClasse'] === null) {
+                            echo "<option value='' selected>Aucune classe</option>";
+                        }
+
+                        $classesResult = mysqli_query($connexion, "SELECT * FROM classe");
+                        
+                        while ($classe = mysqli_fetch_assoc($classesResult)) {
+                            $selected = ($classe['id'] == $user['idClasse']) ? 'selected' : '';
+                            echo "<option value='{$classe['id']}' $selected>{$classe['nom']}</option>";
+                        }
+                        ?>
+                    </select>
+                </div>              
                 <div class="mb-3">
                     <label class="form-label">Catégorie :</label>
                     <input type="text" class="form-control" value="<?= htmlspecialchars($user['types']) ?>" readonly>

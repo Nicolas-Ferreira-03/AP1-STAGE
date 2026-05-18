@@ -30,6 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($result && mysqli_num_rows($result) > 0) {
         $row = mysqli_fetch_assoc($result);
         $descriptif = $row['descriptif'];
+		$note= $row['note'];
     } else {
         $message = "Aucun compte rendu trouvé pour cette date.";
         $descriptif = "";
@@ -64,6 +65,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card shadow-sm p-3 mt-3">
             <h4 class="mb-3 text-primary">Compte Rendu du <?php echo htmlspecialchars($date_selected); ?></h4>
             <p><?php echo nl2br(htmlspecialchars($descriptif)); ?></p>
+			<?php echo "Note du compte rendu :" ?>
+			<p><?php echo(htmlspecialchars($note)); ?></p>
         </div>
     <?php endif; ?>
 
